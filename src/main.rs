@@ -10,11 +10,12 @@ fn census(_world: [[u8; 75]; 75]) -> u16 {
             }
         }
     }
+
     count
 }
 
 fn generation(_world: [[u8; 75]; 75]) -> [[u8; 75]; 75] {
-    let mut newworld = [[0u8; 75]; 75];
+    let mut new_world = [[0u8; 75]; 75];
 
     for i in 0..74 {
         for j in 0..74 {
@@ -45,21 +46,21 @@ fn generation(_world: [[u8; 75]; 75]) -> [[u8; 75]; 75] {
                 count = _world[i][j+1];
             }
 
-            newworld[i][j] = 0;
+            new_world[i][j] = 0;
 
             if (count <2) && (_world[i][j] == 1) {
-                newworld[i][j] = 0;
+                new_world[i][j] = 0;
             }
             if _world[i][j] == 1 && (count == 2 || count == 3) {
-                newworld[i][j] = 1; 
+                new_world[i][j] = 1;
             }
             if (_world[i][j] == 0) && (count == 3) {
-                newworld[i][j] = 1;
+                new_world[i][j] = 1;
             }
         }
     }
 
-    newworld
+    new_world
 }
 
 fn main() {
