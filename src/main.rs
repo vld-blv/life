@@ -3,8 +3,7 @@ extern crate termion;
 use std::{env, thread, time};
 use std::fs::File;
 use std::io::{BufRead, BufReader};
-use termion::clear;
-use termion::color;
+use termion::{clear, color};
 
 const WORLD_SIZE: usize = 75;
 const WORLD_SIZE_INDEX: usize = WORLD_SIZE - 1;
@@ -53,7 +52,7 @@ fn generation(_world: [[u8; WORLD_SIZE]; WORLD_SIZE]) -> [[u8; WORLD_SIZE]; WORL
                 count += _world[i][j-1];
             }
             if j < WORLD_SIZE_INDEX {
-                count = _world[i][j+1];
+                count += _world[i][j+1];
             }
 
             new_world[i][j] = 0;
@@ -116,7 +115,7 @@ fn display_world(world: [[u8; WORLD_SIZE]; WORLD_SIZE]) {
 
 fn main() {
     let mut world = [[0u8; WORLD_SIZE]; WORLD_SIZE];
-    let mut generations = 0;
+    let mut generation_number = 0;
 
     let args: Vec<String> = env::args().collect();
 
@@ -135,14 +134,14 @@ fn main() {
         world = populate_from_file(filename)
     }
 
-    println!("Population at {} is {}", generations, census(world));
+    println!("Population at {} is {}", generation_number, census(world));
     for _gens in 0..GENERATIONS_COUNT {
         let temp = generation(world);
         world = temp;
-        generations += 1;
+        generation_number += 1;
         println!("{}", clear::All);
         display_world(world);
-        println!("{blue}Population at generation {g} is {c}", blue = color::Fg(color::Blue), g = generations, c = census(world));
+        println!("{blue}Population at generation {g} is {c}", blue = color::Fg(color::Blue), g = generation_number, c = census(world));
         thread::sleep(time::Duration::from_secs(2))
     }
 }
