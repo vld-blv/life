@@ -5,7 +5,7 @@ use std::fs::File;
 use std::io::{BufRead, BufReader};
 use termion::{clear, color};
 
-const WORLD_SIZE: usize = 75;
+const WORLD_SIZE: usize = 40;
 const WORLD_SIZE_INDEX: usize = WORLD_SIZE - 1;
 const GENERATIONS_COUNT: u16 = 100;
 
@@ -78,7 +78,7 @@ fn populate_from_file(filename: String) -> [[u8; WORLD_SIZE]; WORLD_SIZE] {
     let reader = BufReader::new(file);
     let mut pairs: Vec<(usize, usize)> = Vec::new();
 
-    for (_index, line) in reader.lines().enumerate() {
+    for line in reader.lines() {
         let l = line.unwrap();
         let mut words = l.split_whitespace();
         let left = words.next().unwrap();
@@ -142,6 +142,6 @@ fn main() {
         println!("{}", clear::All);
         display_world(world);
         println!("{blue}Population at generation {g} is {c}", blue = color::Fg(color::Blue), g = generation_number, c = census(world));
-        thread::sleep(time::Duration::from_secs(2))
+        thread::sleep(time::Duration::from_millis(500))
     }
 }
