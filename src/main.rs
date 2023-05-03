@@ -1,13 +1,11 @@
-extern crate rand;
-extern crate termion;
-use std::{env, thread, time};
+use std::{thread, time};
 use std::fs::File;
 use std::io::{BufRead, BufReader};
 use termion::{clear, color};
+use clap::Parser;
 
 const WORLD_SIZE: usize = 40;
 const WORLD_SIZE_INDEX: usize = WORLD_SIZE - 1;
-const GENERATIONS_COUNT: u16 = 100;
 
 fn census(world: [[u8; WORLD_SIZE]; WORLD_SIZE]) -> u16 {
     let mut count = 0;
@@ -113,29 +111,38 @@ fn display_world(world: [[u8; WORLD_SIZE]; WORLD_SIZE]) {
     }
 }
 
+#[derive(Parser, Debug)]
+struct Args {
+    #[clap(short = 'f', long = "file")]
+    filename: Option<String>,
+
+    #[clap(short = 'g', long = "generations", default_value = "100")]
+    generations_count: usize,
+}
+
 fn main() {
-    let mut world = [[0u8; WORLD_SIZE]; WORLD_SIZE];
+    let args = Args::parse();
+
+    let mut world = match args.filename {
+        Some(file) => populate_from_file(file),
+        None => {
+            let mut world = [[0u8; WORLD_SIZE]; WORLD_SIZE];
+            for i in 0..WORLD_SIZE_INDEX {
+                for j in 0..WORLD_SIZE_INDEX {
+                    if rand::random() {
+                        world[i][j] = 1;
+                    } else {
+                        world[i][j] = 0;
+                    }
+                } 
+            }
+            world
+        },
+    };
     let mut generation_number = 0;
 
-    let args: Vec<String> = env::args().collect();
-
-    if args.len() < 2 {
-        for i in 0..WORLD_SIZE_INDEX {
-            for j in 0..WORLD_SIZE_INDEX {
-                if rand::random() {
-                    world[i][j] = 1;
-                } else {
-                    world[i][j] = 0;
-                }
-            } 
-        }
-    } else {
-        let filename = env::args().nth(1).unwrap();
-        world = populate_from_file(filename)
-    }
-
     println!("Population at {} is {}", generation_number, census(world));
-    for _gens in 0..GENERATIONS_COUNT {
+    for _gens in 0..args.generations_count {
         let temp = generation(world);
         world = temp;
         generation_number += 1;
