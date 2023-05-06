@@ -1,8 +1,9 @@
-use std::{thread, time, io, env};
+use std::{thread, time, env};
 use std::fs::{File, write};
 use std::io::{BufRead, BufReader};
 use termion::{clear, color};
 use clap::Parser;
+use anyhow::{anyhow, Result, Context};
 
 const WORLD_SIZE: usize = 40;
 const WORLD_SIZE_INDEX: usize = WORLD_SIZE - 1;
@@ -70,18 +71,23 @@ fn generation(_world: [[u8; WORLD_SIZE]; WORLD_SIZE]) -> [[u8; WORLD_SIZE]; WORL
     new_world
 }
 
-fn populate_from_file(filename: String) -> [[u8; WORLD_SIZE]; WORLD_SIZE] {
+fn populate_from_file(filename: String) -> Result<[[u8; WORLD_SIZE]; WORLD_SIZE]> {
     let mut new_world = [[0u8; WORLD_SIZE]; WORLD_SIZE];
-    let file = File::open(filename).unwrap();
+    let file = File::open(&filename).with_context(|| format!("Failed to open file: {}", filename))?;
     let reader = BufReader::new(file);
     let mut pairs: Vec<(usize, usize)> = Vec::new();
 
-    for line in reader.lines() {
-        let l = line.unwrap();
+    for (line_number, line) in reader.lines().enumerate() {
+        let l = line?;
         let mut words = l.split_whitespace();
-        let left = words.next().unwrap();
-        let right = words.next().unwrap();
-        pairs.push((left.parse::<usize>().unwrap(), right.parse::<usize>().unwrap()));
+        let left = words.next().unwrap().parse::<usize>().context("Failed to parse left coordinate")?;
+        let right = words.next().unwrap().parse::<usize>().context("Failed to parse right coordinate")?;
+
+        if left >= WORLD_SIZE || right >= WORLD_SIZE {
+            return Err(anyhow!("Coordinates out of bounds on line {}", line_number + 1));
+        }
+
+        pairs.push((left, right));
     }
 
     for i in 0..WORLD_SIZE_INDEX {
@@ -94,7 +100,7 @@ fn populate_from_file(filename: String) -> [[u8; WORLD_SIZE]; WORLD_SIZE] {
         new_world[x][y] = 1;
     }
 
-    new_world
+    Ok(new_world)
 }
 
 fn display_world(world: [[u8; WORLD_SIZE]; WORLD_SIZE]) {
@@ -111,7 +117,7 @@ fn display_world(world: [[u8; WORLD_SIZE]; WORLD_SIZE]) {
     }
 }
 
-fn save_world_to_file(world: [[u8; WORLD_SIZE]; WORLD_SIZE]) -> io::Result<()> {
+fn save_world_to_file(world: [[u8; WORLD_SIZE]; WORLD_SIZE]) -> Result<()> {
     let mut pairs: Vec<(usize, usize)> = Vec::new();
 
     for i in 0..WORLD_SIZE_INDEX {
@@ -131,7 +137,7 @@ fn save_world_to_file(world: [[u8; WORLD_SIZE]; WORLD_SIZE]) -> io::Result<()> {
     let mut path = env::current_exe()?;
     path.set_file_name("world.txt");
 
-    write(path, output)?;
+    write(path, output).context("Failed to write the world to file")?;
 
     Ok(())
 }
@@ -145,11 +151,11 @@ struct Args {
     generations_count: usize,
 }
 
-fn main() -> io::Result<()> {
+fn main() -> Result<()> {
     let args = Args::parse();
 
     let mut world = match args.filename {
-        Some(file) => populate_from_file(file),
+        Some(file) => populate_from_file(file)?,
         None => {
             let mut world = [[0u8; WORLD_SIZE]; WORLD_SIZE];
             for i in 0..WORLD_SIZE_INDEX {
@@ -177,5 +183,6 @@ fn main() -> io::Result<()> {
         thread::sleep(time::Duration::from_millis(500))
     }
 
-    save_world_to_file(world)
+    save_world_to_file(world).context("Failed to save the world to file")?;
+    Ok(())
 }
