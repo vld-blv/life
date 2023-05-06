@@ -1,5 +1,5 @@
-use std::{thread, time};
-use std::fs::File;
+use std::{thread, time, io, env};
+use std::fs::{File, write};
 use std::io::{BufRead, BufReader};
 use termion::{clear, color};
 use clap::Parser;
@@ -111,6 +111,31 @@ fn display_world(world: [[u8; WORLD_SIZE]; WORLD_SIZE]) {
     }
 }
 
+fn save_world_to_file(world: [[u8; WORLD_SIZE]; WORLD_SIZE]) -> io::Result<()> {
+    let mut pairs: Vec<(usize, usize)> = Vec::new();
+
+    for i in 0..WORLD_SIZE_INDEX {
+        for j in 0..WORLD_SIZE_INDEX {
+            if world[i][j] == 1 {
+                pairs.push((i, j))
+            } 
+        } 
+    }
+
+    let output: String = pairs
+        .iter()
+        .map(|(a, b)| format!("{a} {b}"))
+        .collect::<Vec<_>>()
+        .join("\n");
+
+    let mut path = env::current_exe()?;
+    path.set_file_name("world.txt");
+
+    write(path, output)?;
+
+    Ok(())
+}
+
 #[derive(Parser, Debug)]
 struct Args {
     #[clap(short = 'f', long = "file")]
@@ -120,7 +145,7 @@ struct Args {
     generations_count: usize,
 }
 
-fn main() {
+fn main() -> io::Result<()> {
     let args = Args::parse();
 
     let mut world = match args.filename {
@@ -151,4 +176,6 @@ fn main() {
         println!("{blue}Population at generation {g} is {c}", blue = color::Fg(color::Blue), g = generation_number, c = census(world));
         thread::sleep(time::Duration::from_millis(500))
     }
+
+    save_world_to_file(world)
 }
